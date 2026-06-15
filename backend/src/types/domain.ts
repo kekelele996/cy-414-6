@@ -22,6 +22,7 @@ export interface CourseDto {
   price: number
   maxCapacity: number
   schedule: string[]
+  bodyParts: string[]
   status: string
   coach?: UserDto
 }

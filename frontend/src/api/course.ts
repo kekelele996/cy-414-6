@@ -1,8 +1,15 @@
 import { request } from '@/utils/request'
+import type { BodyPartValue } from '@/constants/course'
 import type { Course } from '@/types/domain'
 
+export interface CourseListParams {
+  keyword?: string
+  coachId?: number
+  bodyParts?: BodyPartValue[]
+}
+
 export const courseApi = {
-  list(params?: { keyword?: string; coachId?: number }) {
+  list(params?: CourseListParams) {
     return request.get<unknown, Course[]>('/courses', { params })
   },
   recommended() {
@@ -15,4 +22,3 @@ export const courseApi = {
     return request.post<unknown, Course>('/courses', payload)
   }
 }
-

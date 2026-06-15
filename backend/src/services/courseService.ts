@@ -17,6 +17,7 @@ function normalizeCourse(course: any) {
     price: Number(course.price),
     maxCapacity: course.maxCapacity,
     schedule: Array.isArray(course.schedule) ? course.schedule : [],
+    bodyParts: Array.isArray(course.bodyParts) ? course.bodyParts : [],
     status: course.status,
     createdAt: course.createdAt,
     coach: course.coach
@@ -31,9 +32,19 @@ function normalizeCourse(course: any) {
   }
 }
 
+function matchBodyParts(courseBodyParts: string[], filterBodyParts: string[]): boolean {
+  if (!filterBodyParts || filterBodyParts.length === 0) return true
+  if (!courseBodyParts || courseBodyParts.length === 0) return false
+  return filterBodyParts.every(bp => courseBodyParts.includes(bp))
+}
+
 export const courseService = {
   async list(query: z.infer<typeof courseQuerySchema>) {
-    logger.info('COURSE_LIST', { keyword: query.keyword || '', coachId: query.coachId || '' })
+    logger.info('COURSE_LIST', {
+      keyword: query.keyword || '',
+      coachId: query.coachId || '',
+      bodyParts: query.bodyParts || []
+    })
     const where: Prisma.CourseWhereInput = {
       status: 'published',
       ...(query.keyword
@@ -52,7 +63,11 @@ export const courseService = {
       include: { coach: true },
       orderBy: { createdAt: 'desc' }
     })
-    return courses.map(normalizeCourse)
+    const normalized = courses.map(normalizeCourse)
+    if (query.bodyParts && query.bodyParts.length > 0) {
+      return normalized.filter(c => matchBodyParts(c.bodyParts, query.bodyParts as string[]))
+    }
+    return normalized
   },
 
   async detail(id: number) {
@@ -65,7 +80,7 @@ export const courseService = {
   },
 
   async create(coachId: number, role: string, payload: z.infer<typeof courseCreateSchema>) {
-    logger.info('COURSE_CREATE_START', { title: payload.title })
+    logger.info('COURSE_CREATE_START', { title: payload.title, bodyParts: payload.bodyParts })
     if (role !== UserRole.COACH && role !== UserRole.ADMIN) {
       throw new AppError(`Course[coach_id=${coachId}] create failed: role not ${UserRole.COACH}`, 403, ErrorCodes.COURSE_COACH_REQUIRED, 'Course', 'coach_id', role)
     }
@@ -79,11 +94,12 @@ export const courseService = {
           price: payload.price,
           maxCapacity: payload.maxCapacity,
           schedule: payload.schedule,
+          bodyParts: payload.bodyParts || [],
           status: payload.status
         },
         include: { coach: true }
       })
-      logger.info('COURSE_CREATE_SUCCESS', { id: course.id, schedule: payload.schedule.join(',') })
+      logger.info('COURSE_CREATE_SUCCESS', { id: course.id, schedule: payload.schedule.join(','), bodyParts: (payload.bodyParts || []).join(',') })
       return normalizeCourse(course)
     } catch {
       logger.error('COURSE_CREATE_FAILED', { coachId })
@@ -96,4 +112,3 @@ export const courseService = {
     return courses.slice(0, 3).map((course, index) => ({ ...course, reason: index === 0 ? '最近可约' : '训练匹配' }))
   }
 }
-

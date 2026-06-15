@@ -8,6 +8,19 @@
       <span class="price">{{ formatPrice(course.price) }}</span>
     </div>
 
+    <div v-if="course.bodyParts && course.bodyParts.length" class="body-parts">
+      <el-tag
+        v-for="bp in course.bodyParts"
+        :key="bp"
+        size="small"
+        effect="light"
+        :style="tagStyle(bp)"
+        class="bp-tag"
+      >
+        {{ BodyPartLabel[bp] }}
+      </el-tag>
+    </div>
+
     <p>{{ course.description }}</p>
 
     <div class="meta-grid">
@@ -35,6 +48,8 @@
 <script setup lang="ts">
 import { computed, toRef } from 'vue'
 import { CalendarClock, CalendarPlus, Timer, Users } from '@lucide/vue'
+import type { BodyPartValue } from '@/constants/course'
+import { BodyPartColor, BodyPartLabel } from '@/constants/course'
 import type { Course } from '@/types/domain'
 import CoachAvatar from './CoachAvatar.vue'
 import { formatPrice, formatSchedule } from '@/utils/formatters'
@@ -50,6 +65,15 @@ const emit = defineEmits<{
 
 const courseRef = computed(() => toRef(props, 'course').value)
 const { nextSchedule } = useCoachSchedule(courseRef)
+
+function tagStyle(bp: BodyPartValue) {
+  const color = BodyPartColor[bp] || '#6b7280'
+  return {
+    background: `${color}15`,
+    color,
+    borderColor: `${color}50`
+  }
+}
 
 function handleBook(value: string | number | object) {
   emit('book', props.course, String(value))
@@ -101,6 +125,17 @@ p {
   color: var(--green);
   font-size: 24px;
   font-weight: 900;
+}
+
+.body-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bp-tag {
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .meta-grid {

@@ -1,4 +1,5 @@
 import type { BookingStatusValue } from '@/constants/booking'
+import type { BodyPartValue } from '@/constants/course'
 import type { UserRoleValue } from '@/constants/user'
 
 export interface User {
@@ -22,6 +23,7 @@ export interface Course {
   price: number
   maxCapacity: number
   schedule: string[]
+  bodyParts: BodyPartValue[]
   status: string
   createdAt?: string
   coach?: Pick<User, 'id' | 'nickname' | 'avatar' | 'role'>

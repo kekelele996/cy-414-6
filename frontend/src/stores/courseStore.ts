@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
+import { ElMessage } from 'element-plus'
 import { courseApi } from '@/api/course'
+import { BodyPart } from '@/constants/course'
 import { UserRole } from '@/constants/user'
+import type { BodyPartValue } from '@/constants/course'
 import type { Course } from '@/types/domain'
 
 const demoCourses: Course[] = [
@@ -13,6 +16,7 @@ const demoCourses: Course[] = [
     price: 188,
     maxCapacity: 6,
     schedule: ['2026-06-16T08:00:00+08:00', '2026-06-18T08:00:00+08:00'],
+    bodyParts: [BodyPart.CORE, BodyPart.LEGS, BodyPart.SHOULDERS],
     status: 'published',
     reason: '最近可约',
     coach: {
@@ -31,6 +35,7 @@ const demoCourses: Course[] = [
     price: 260,
     maxCapacity: 1,
     schedule: ['2026-06-16T19:00:00+08:00', '2026-06-19T19:30:00+08:00'],
+    bodyParts: [BodyPart.SHOULDERS, BodyPart.BACK],
     status: 'published',
     reason: '训练匹配',
     coach: {
@@ -49,6 +54,7 @@ const demoCourses: Course[] = [
     price: 168,
     maxCapacity: 8,
     schedule: ['2026-06-17T12:30:00+08:00'],
+    bodyParts: [BodyPart.CARDIO, BodyPart.FULLBODY],
     status: 'published',
     coach: {
       id: 4,
@@ -64,14 +70,25 @@ export const useCourseStore = defineStore('courses', {
     list: demoCourses,
     recommended: demoCourses.slice(0, 2),
     keyword: '',
-    coachId: undefined as number | undefined
+    coachId: undefined as number | undefined,
+    bodyParts: [] as BodyPartValue[]
   }),
   actions: {
     async loadCourses() {
       try {
-        this.list = await courseApi.list({ keyword: this.keyword || undefined, coachId: this.coachId })
+        const params = {
+          keyword: this.keyword || undefined,
+          coachId: this.coachId,
+          bodyParts: this.bodyParts.length ? this.bodyParts : undefined
+        }
+        this.list = await courseApi.list(params)
       } catch {
-        this.list = demoCourses.filter(course => !this.keyword || course.title.includes(this.keyword) || course.description?.includes(this.keyword))
+        this.list = demoCourses
+          .filter(course => !this.keyword || course.title.includes(this.keyword) || course.description?.includes(this.keyword))
+          .filter(course => !this.coachId || course.coachId === this.coachId)
+          .filter(course =>
+            this.bodyParts.length === 0 || this.bodyParts.every(bp => course.bodyParts.includes(bp))
+          )
       }
     },
     async loadRecommended() {
@@ -80,7 +97,17 @@ export const useCourseStore = defineStore('courses', {
       } catch {
         this.recommended = demoCourses.slice(0, 2)
       }
+    },
+    async create(payload: Partial<Course>) {
+      const created = await courseApi.create(payload)
+      ElMessage.success('课程发布成功')
+      this.list.unshift(created)
+      return created
+    },
+    clearFilters() {
+      this.keyword = ''
+      this.coachId = undefined
+      this.bodyParts = []
     }
   }
 })
-

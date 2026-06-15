@@ -53,6 +53,7 @@ model Course {
   price       Decimal      @db.Decimal(10, 2)
   maxCapacity Int          @default(1) @map("max_capacity")
   schedule    Json
+  bodyParts   Json?        @map("body_parts")
   status      CourseStatus @default(published)
   createdAt   DateTime     @default(now()) @map("created_at")
   coach       User         @relation("CoachCourses", fields: [coachId], references: [id])
